@@ -1,0 +1,31 @@
+{
+  "name": "ds100knocks",
+  "version": "1.0.0",
+  "description": "The Japan Data Scientist Society 100 knocks",
+  "main": "asciidoctor doc/questions.adoc",
+  "directories": {
+    "doc": "doc"
+  },
+  "dependencies": {
+    "asciidoctor": "^2.2.0",
+    "asciidoctor-cli": "^1.5.6-rc.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "doc": "asciidoctor doc/questions.adoc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shu-watanabe/100knocks-preprocess.git"
+  },
+  "keywords": [
+    "data_science",
+    "100_knocks"
+  ],
+  "author": "The Japan DataScientist Society",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/shu-watanabe/100knocks-preprocess/issues"
+  },
+  "homepage": "https://github.com/shu-watanabe/100knocks-preprocess#readme"
+}

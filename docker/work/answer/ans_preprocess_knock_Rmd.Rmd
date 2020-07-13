@@ -1,0 +1,1714 @@
+---
+title: "Ans_100_knocks_Rmd"
+author: "Shun N. Watanabe at Yokohama Systems Co. Ltd."
+date: "2020/7/11"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+require(plyr)
+require(dplyr)
+require(tidyr)
+require(purrr)
+require(rsample)
+```
+
+## loading
+
+```{r}
+df_receipt <- read.csv(
+  'data/receipt.csv',
+  colClasses=c('integer','integer',
+               'character','integer',
+               'integer','character',
+               'character','integer',
+               'integer'),
+  stringsAsFactors = FALSE)
+
+df_customer <- read.csv(
+    'data/customer.csv',
+    fileEncoding = 'utf-8',
+    colClasses=c(
+      'character','character','character','character',
+      'character','integer','character','character',
+      'character','character','character'
+    ),
+    stringsAsFactors = FALSE) %>%
+  mutate(birth_day=as.Date(birth_day))
+
+df_store <- read.csv(
+    'data/store.csv',
+    fileEncoding = 'utf-8',
+    colClasses=c(
+      rep('character',7),rep('numeric',3)
+    ),
+    stringsAsFactors = FALSE)
+
+df_product <- read.csv(
+    'data/product.csv',
+    fileEncoding = 'UTF-8-BOM',
+    colClasses=c(
+      rep('character',4),rep('integer',2)
+    ),
+    stringsAsFactors = FALSE)
+
+df_category <- read.csv(
+    'data/category.csv',
+    fileEncoding = 'UTF-8-BOM',
+    colClasses=rep('character',6),
+    stringsAsFactors = FALSE)
+
+df_geocode <- read.csv(
+    'data/geocode.csv',
+    fileEncoding = 'UTF-8-BOM',
+    colClasses= c(rep('character',7),rep('numeric',2)),
+    stringsAsFactors = FALSE)
+```
+
+## 100 knocks
+
+### 001-003 列に対する操作
+
+#### R-001
+
+> レシート明細のデータフレーム（df_receipt）から全項目の先頭10件を表示し、どのよう
+なデータを保有しているか目視で確認せよ。
+
+```{r}
+head(df_receipt,10)
+```
+
+#### R-002
+
+>レシート明細のデータフレーム（df_receipt）から売上日（sales_ymd）、顧客ID
+（customer_id）、商品コード（product_cd）、売上金額（amount）の順に列を指定し、
+10件表⽰させよ。
+
+```{r}
+df_receipt %>%
+    select(sales_ymd,customer_id,product_cd,amount) %>%
+    head(10)
+```
+
+#### R-003
+
+> レシート明細のデータフレーム（df_receipt）から売上日（sales_ymd）、顧客ID
+（customer_id）、商品コード（product_cd）、売上金額（amount）の順に列を指定し、
+10件表⽰させよ。ただし、sales_ymdはsales_dateに項⽬名を変更しながら抽出するこ
+と。
+
+```{r}
+df_receipt %>%
+    select(sales_ymd,customer_id,product_cd,amount) %>%
+    dplyr::rename(sales_date=sales_ymd) %>%
+    head(10)
+```
+
+### 004-009 行に対する操作
+
+#### R-004
+
+> レシート明細のデータフレーム（df_receipt）から売上日（sales_ymd）、顧客ID
+（customer_id）、商品コード（product_cd）、売上金額（amount）の順に列を指定し、
+以下の条件を満たすデータを抽出せよ。
+> 
+> * 顧客ID（customer_id）が"CS018205000001"
+
+```{r}
+df_receipt %>%
+    select(sales_ymd,customer_id,product_cd,amount) %>%
+    filter(customer_id=='CS018205000001') %>%
+    head(10)
+```
+
+#### R-005
+
+> レシート明細のデータフレーム（df_receipt）から売上日（sales_ymd）、顧客ID
+（customer_id）、商品コード（product_cd）、売上金額（amount）の順に列を指定し、
+以下の条件を満たすデータを抽出せよ。
+>
+> * 顧客ID（customer_id）が"CS018205000001"
+> * 売上⾦額（amount）が1,000以上
+
+```{r}
+df_receipt %>%
+    select(sales_ymd,customer_id,product_cd,amount) %>%
+    filter(customer_id=='CS018205000001' & amount>=1000)
+```
+
+#### R-006
+
+> レシート明細データフレーム「df_receipt」から売上日（sales_ymd）、顧客ID
+（customer_id）、商品コード（product_cd）、売上数量（quantity）、売上金額
+（amount）の順に列を指定し、以下の条件を満たすデータを抽出せよ。
+> 
+> * 顧客ID（customer_id）が"CS018205000001"
+> * 売上⾦額（amount）が1,000以上または売上数量（quantity）が5以上
+
+```{r}
+df_receipt %>%
+    select(sales_ymd,customer_id,product_cd,quantity,amount) %>%
+    filter(customer_id=='CS018205000001' & (amount>=1000 | quantity>=5))
+```
+
+#### R-007
+
+> レシート明細のデータフレーム（df_receipt）から売上日（sales_ymd）、顧客ID
+（customer_id）、商品コード（product_cd）、売上金額（amount）の順に列を指定し、
+以下の条件を満たすデータを抽出せよ。
+> 
+> * 顧客ID（customer_id）が"CS018205000001"
+> * 売上⾦額（amount）が1,000以上2,000以下
+
+```{r}
+df_receipt %>%
+    select(sales_ymd,customer_id,product_cd,amount) %>%
+    filter(customer_id=='CS018205000001' & between(amount,1000,2000))
+```
+
+
+#### R-008
+
+> レシート明細のデータフレーム（df_receipt）から売上日（sales_ymd）、顧客ID
+（customer_id）、商品コード（product_cd）、売上金額（amount）の順に列を指定し、
+以下の条件を満たすデータを抽出せよ。
+> 
+> * 顧客ID（customer_id）が"CS018205000001"
+> * 商品コード（product_cd）が"P071401019"以外
+
+```{r}
+df_receipt %>%
+    select(sales_ymd,customer_id,product_cd,quantity,amount) %>%
+    filter(customer_id=='CS018205000001' & product_cd!='P071401019' & quantity>=5)
+```
+
+#### R-009
+
+> 以下の処理において、出力結果を変えずにORをANDに書き換えよ。
+>
+>
+```{r,eval=FALSE}
+df_store %>%
+  filter(!(prefecture_cd==13 | floor_area >900))
+```
+
+
+```{r}
+df_store %>%
+  filter(prefecture_cd!=13 & floor_area <=900)
+```
+
+### 010-016 あいまい条件
+
+#### R-010
+
+> 店舗データフレーム（df_store）から、店舗コード（store_cd）が"S14"で始まるものだけ
+全項目抽出し、10件だけ表示せよ。
+
+```{r}
+df_store %>% filter(startsWith(store_cd,'S14')) %>% head(10)
+```
+
+#### R-011
+
+> 顧客データフレーム（df_customer）から顧客ID（customer_id）の末尾が1のものだけ全
+項目抽出し、10件だけ表示せよ。
+
+```{r}
+df_customer %>% filter(endsWith(customer_id,'1')) %>% head(10)
+```
+
+#### R-012
+
+> 店舗データフレーム（df_store）から横浜市の店舗だけ全項目表示せよ。
+
+```{r}
+df_store %>% filter(grepl('横浜市',address)) %>% head(10)
+```
+
+#### R-013
+
+> 顧客データフレーム（df_customer）から、ステータスコード（status_cd）の先頭がアル
+ファベットのA〜Fで始まるデータを全項目抽出し、10件だけ表示せよ。
+
+```{r}
+df_customer %>% filter(grepl('^[A-F]',status_cd)) %>% head(10)
+```
+
+#### R-014
+
+> 顧客データフレーム（df_customer）から、ステータスコード（status_cd）の末尾が数字
+の1〜9で終わるデータを全項目抽出し、10件だけ表示せよ。
+
+```{r}
+df_customer %>% filter(grepl('[1-9]$',status_cd)) %>% head(10)
+```
+
+#### R-015
+
+> 顧客データフレーム（df_customer）から、ステータスコード（status_cd）の先頭がアル
+ファベットのA〜Fで始まり、末尾が数字の1〜9で終わるデータを全項目抽出し、10件だ
+け表示せよ。
+
+```{r}
+df_customer %>% filter(grepl('^[A-F].+[1-9]$',status_cd)) %>% head(10)
+```
+
+#### R-016
+
+> 店舗データフレーム（df_store）から、電話番号（tel_no）が3桁-3桁-4桁のデータを全項
+目表示せよ。
+
+```{r}
+df_store %>% filter(grepl('^\\d{3}-\\d{3}-\\d{4}$',tel_no)) 
+```
+
+### 017-020 ソート
+
+#### R-017
+
+> 顧客データフレーム（df_customer）を生年月日（birth_day）で高齢順にソートし、先頭
+10件を全項⽬表⽰せよ。
+
+```{r}
+df_customer %>% arrange(birth_day) %>%
+    head(10)
+```
+
+#### R-018
+
+> 顧客データフレーム（df_customer）を生年月日（birth_day）で若い順にソートし、先頭
+10件を全項⽬表⽰せよ。
+
+```{r}
+df_customer %>% arrange(desc(birth_day)) %>%
+    head(10)
+```
+
+#### R-019
+
+> レシート明細データフレーム（df_receipt）に対し、1件あたりの売上金額（amount）が
+高い順にランクを付与し、先頭10件を抽出せよ。項目は顧客ID（customer_id）、売上金
+額（amount）、付与したランクを表示させること。なお、売上金額（amount）が等しい
+場合は同一順位を付与するものとする。
+
+```{r}
+df_receipt %>% select(customer_id,amount) %>%
+    mutate(ランク=min_rank(desc(amount))) %>%
+    arrange(ランク) %>% head(10)
+```
+
+#### R-020
+
+> レシート明細データフレーム（df_receipt）に対し、1件あたりの売上金額（amount）が
+高い順にランクを付与し、先頭10件を抽出せよ。項目は顧客ID（customer_id）、売上金
+額（amount）、付与したランクを表示させること。なお、売上金額（amount）が等しい
+場合でも別順位を付与すること。
+
+```{r}
+df_receipt %>% select(customer_id,amount) %>%
+    mutate(ランク=row_number(desc(amount))) %>%
+    arrange(ランク) %>% head(10)
+```
+
+### 021-033 集計
+
+#### R-021
+
+> レシート明細データフレーム（df_receipt）に対し、件数をカウントせよ。
+
+```{r}
+nrow(df_receipt)
+```
+
+
+#### R-022
+
+> レシート明細データフレーム（df_receipt）の顧客ID（customer_id）に対し、ユニーク件
+数をカウントせよ。
+
+```{r}
+df_receipt %>% count(customer_id) %>% nrow()
+```
+
+
+#### R-023
+
+> レシート明細データフレーム（df_receipt）に対し、店舗コード（store_cd）ごとに売上
+金額（amount）と売上数量（quantity）を合計せよ。
+
+```{r}
+df_receipt %>% group_by(store_cd) %>% dplyr::summarise(合計売上金額=sum(amount),合計売上数量=sum(quantity))
+```
+
+#### R-024
+
+> レシート明細データフレーム（df_receipt）に対し、顧客ID（customer_id）ごとに最も新
+しい売上日（sales_ymd）を求め、10件表示せよ。
+
+```{r}
+df_receipt %>% group_by(customer_id) %>%
+    dplyr::summarise(最も新しい売上日=max(sales_ymd)) %>% head(10)
+```
+
+#### R-025
+
+> レシート明細データフレーム（df_receipt）に対し、顧客ID（customer_id）ごとに最も古
+い売上日（sales_ymd）を求め、10件表示せよ。
+
+```{r}
+df_receipt %>% group_by(customer_id) %>%
+    dplyr::summarise(最も古い売上日=min(sales_ymd)) %>% head(10)
+```
+
+#### R-026
+
+> レシート明細データフレーム（df_receipt）に対し、顧客ID（customer_id）ごとに最も新
+しい売上日（sales_ymd）と古い売上日を求め、両者が異なるデータを10件表示せよ。
+
+```{r}
+df_receipt %>% group_by(customer_id) %>%
+    dplyr::summarise(
+        最も古い売上日=min(sales_ymd),
+        最も新しい売上日=max(sales_ymd)) %>%
+    filter(最も古い売上日!=最も新しい売上日) %>%
+    head(10)
+```
+
+#### R-027
+
+> レシート明細データフレーム（df_receipt）に対し、店舗コード（store_cd）ごとに売上
+金額（amount）の平均を計算し、降順でTOP5を表示せよ。
+
+```{r}
+df_receipt %>% group_by(store_cd) %>%
+    dplyr::summarise(
+        平均売上金額=mean(amount)) %>%
+    arrange(desc(平均売上金額)) %>%
+    head(5)
+```
+
+#### R-028
+
+> レシート明細データフレーム（df_receipt）に対し、店舗コード（store_cd）ごとに売上
+金額（amount）の中央値を計算し、降順でTOP5を表示せよ。
+
+```{r}
+df_receipt %>% group_by(store_cd) %>%
+    dplyr::summarise(
+        中央値売上金額=median(amount)) %>%
+    arrange(desc(中央値売上金額)) %>%
+    head(5)
+```
+
+
+#### R-029
+
+> レシート明細データフレーム（df_receipt）に対し、店舗コード（store_cd）ごとに商品
+コード（product_cd）の最頻値を求めよ。
+
+```{r}
+df_receipt %>% nest(-store_cd) %>% 
+    mutate(最頻商品コード=map(data,function(e){
+        tt <- sort(table(e$product_cd),decreasing = TRUE)
+        return (names(tt)[1])
+    })) %>%
+    select(store_cd,最頻商品コード) %>%
+    unnest() %>%
+    head(10)
+```
+
+#### R-030
+
+> レシート明細データフレーム（df_receipt）に対し、店舗コード（store_cd）ごとに売上
+金額（amount）の標本分散を計算し、降順でTOP5を表示せよ。
+
+```{r}
+df_receipt %>% group_by(store_cd) %>%
+    dplyr::summarise(
+        標本分散売上金額=var(amount)) %>%
+    arrange(desc(標本分散売上金額)) %>%
+    head(5)
+```
+
+#### R-031
+
+> レシート明細データフレーム（df_receipt）に対し、店舗コード（store_cd）ごとに売上
+金額（amount）の標本標準偏差を計算し、降順でTOP5を表示せよ。
+
+```{r}
+df_receipt %>% group_by(store_cd) %>%
+    dplyr::summarise(
+        標本標準偏差売上金額=sd(amount)) %>%
+    arrange(desc(標本標準偏差売上金額)) %>%
+    head(5)
+```
+
+#### R-032
+
+> レシート明細データフレーム（df_receipt）の売上金額（amount）について、25％刻みで
+パーセンタイル値を求めよ。
+
+```{r}
+quantile(df_receipt[,'amount'])
+```
+
+#### R-033
+
+> レシート明細データフレーム（df_receipt）に対し、店舗コード（store_cd）ごとに売上
+金額（amount）の平均を計算し、330以上のものを抽出せよ。
+
+```{r}
+df_receipt %>% group_by(store_cd) %>%
+    dplyr::summarise(
+        平均売上金額=mean(amount)) %>%
+    filter(平均売上金額>=330) 
+```
+
+### 034-035 副問合せ
+
+#### R-034
+
+> レシート明細データフレーム（df_receipt）に対し、顧客ID（customer_id）ごとに売上金
+額（amount）を合計して全顧客の平均を求めよ。ただし、顧客IDが"Z"から始まるのもの
+は非会員を表すため、除外して計算すること。
+
+
+R-023 を利用すると楽。
+
+```{r}
+R034_df <- df_receipt %>%
+    filter(!startsWith(customer_id,'Z')) %>%
+    group_by(customer_id) %>%
+    dplyr::summarise(合計売上金額=sum(amount)) %>%
+    ungroup()
+
+R034_mean <- R034_df %>%
+    select(合計売上金額) %>%
+    as.matrix() %>%
+    mean()
+
+print(R034_mean)
+```
+
+#### R-035
+
+> レシート明細データフレーム（df_receipt）に対し、顧客ID（customer_id）ごとに売上金
+額（amount）を合計して全顧客の平均を求め、平均以上に買い物をしている顧客を抽出
+せよ。ただし、顧客IDが"Z"から始まるのものは非会員を表すため、除外して計算するこ
+と。なお、データは10件だけ表示させれば良い。
+
+R-034 を利用すると楽。
+
+```{r}
+R034_df %>% filter(合計売上金額>=R034_mean) %>% head(10)
+```
+
+### 036-042 結合
+
+#### R-036
+
+> レシート明細データフレーム（df_receipt）と店舗データフレーム（df_store）を内部結
+合し、レシート明細データフレームの全項目と店舗データフレームの店舗名
+（store_name）を10件表示させよ。
+
+```{r}
+df_receipt %>% inner_join(
+    df_store %>%select(store_cd,store_name),
+    by='store_cd') %>%
+    head(10)
+```
+
+
+#### R-037
+
+> 商品データフレーム（df_product）とカテゴリデータフレーム（df_category）を内部結合
+し、商品データフレームの全項目とカテゴリデータフレームの小区分名
+（category_small_name）を10件表示させよ。
+
+```{r}
+df_product %>% inner_join(
+    df_category %>%select(category_small_cd,category_small_name),
+    by='category_small_cd') %>%
+    head(10)
+```
+
+
+#### R-038
+
+> 顧客データフレーム（df_customer）とレシート明細データフレーム（df_receipt）か
+ら、各顧客ごとの売上金額合計を求めよ。ただし、買い物の実績がない顧客については売
+上金額を0として表示させること。また、顧客は性別コード（gender_cd）が女性（1）で
+あるものを対象とし、非会員（顧客IDが'Z'から始まるもの）は除外すること。なお、結果
+は10件だけ表示させれば良い。
+
+```{r}
+df_customer %>%
+    filter(gender_cd==1  & !startsWith(customer_id,'Z')) %>%
+    left_join(df_receipt,by='customer_id') %>%
+    group_by(customer_id) %>%
+    dplyr::summarise(売上金額合計=sum(amount,na.rm = TRUE)) %>%
+    head(10) 
+```
+
+#### R-039
+
+> レシート明細データフレーム（df_receipt）から売上日数の多い顧客の上位20件と、売上
+金額合計の多い顧客の上位20件を抽出し、完全外部結合せよ。ただし、非会員（顧客IDが
+'Z'から始まるもの）は除外すること。
+
+```{r}
+df_ugroup <- df_receipt %>%
+    filter(!startsWith(customer_id,'Z'))
+
+df_nday <- df_ugroup %>%
+    group_by(customer_id)  %>%
+    dplyr::summarise(売上日数=n_distinct(sales_ymd)) %>%
+    ungroup() %>%
+    select(customer_id,売上日数) %>%
+    arrange(desc(売上日数)) %>%
+    head(20)
+
+df_camount <- df_ugroup %>%
+    group_by(customer_id) %>%
+    dplyr::summarise(売上金額合計=sum(amount)) %>%
+    ungroup() %>%
+    arrange(desc(売上金額合計)) %>%
+    head(20)
+
+print(full_join(df_nday,df_camount,by='customer_id')%>% as.data.frame())
+```
+
+#### R-040
+
+> 全ての店舗と全ての商品を組み合わせると何件のデータとなるか調査したい。店舗
+（df_store）と商品（df_product）を直積した件数を計算せよ。
+
+df_receipt を間に挟まないと組み合わせにならないから、df_receipt だけでいいような気がする？
+
+```{r}
+table(df_receipt$product_cd,df_receipt$store_cd) %>% length()
+```
+
+#### R-041
+
+> レシート明細データフレーム（df_receipt）の売上金額（amount）を日付（sales_ymd）
+ごとに集計し、前日からの売上金額増減を計算せよ。なお、計算結果は10件表示すればよ
+い。
+
+```{r}
+df_receipt %>% group_by(sales_ymd) %>%
+    dplyr::summarise(合計売上金額=sum(amount)) %>%
+    ungroup() %>%
+    arrange(sales_ymd) %>%
+    mutate(売上金額増減=合計売上金額-lag(合計売上金額,default=0)) %>%
+    head(10)
+```
+
+#### R-042
+
+> レシート明細データフレーム（df_receipt）の売上金額（amount）を日付（sales_ymd）
+ごとに集計し、各日付のデータに対し、１日前、２日前、３日前のデータを結合せよ。結
+果は10件表示すればよい。
+
+R-041 より先にやったほうがいい。
+
+```{r}
+df_receipt %>% group_by(sales_ymd) %>%
+    dplyr::summarise(合計売上金額=sum(amount)) %>%
+    ungroup() %>%
+    arrange(sales_ymd) %>%
+    mutate(
+        `1日前売上金額`=lag(合計売上金額),
+        `2日前売上金額`=lag(合計売上金額,n=2),
+        `3日前売上金額`=lag(合計売上金額,n=3)
+    ) %>%
+    head(10)
+```
+
+### 043-044 縦横変換
+
+#### R-043
+
+> レシート明細データフレーム（df_receipt）と顧客データフレーム（df_customer）を結
+合し、性別（gender）と年代（ageから計算）ごとに売上金額（amount）を合計した売上
+サマリデータフレーム（df_sales_summary）を作成せよ。性別は0が男性、1が女性、9が
+不明を表すものとする。
+ただし、項目構成は年代、女性の売上金額、男性の売上金額、性別不明の売上金額の4項
+目とすること（縦に年代、横に性別のクロス集計）。また、年代は10歳ごとの階級とする
+こと。
+
+```{r}
+df_sales_summary <- df_receipt %>%
+    inner_join(
+        df_customer %>%
+        mutate(年代=floor(age/10)*10),
+        by='customer_id'
+    ) %>% group_by(gender_cd,年代) %>%
+    dplyr::summarise(売上金額=sum(amount)) %>%
+    ungroup() %>%
+    mutate(gender_cd=factor(gender_cd,c(0,1,9),c('男性','女性','不明'))) %>%
+    spread(gender_cd,売上金額)
+
+print(df_sales_summary)
+```
+
+#### R-044
+
+> 前設問で作成した売上サマリデータフレーム（df_sales_summary）は性別の売上を横持
+ちさせたものであった。このデータフレームから性別を縦持ちさせ、年代、性別コード、
+売上金額の3項目に変換せよ。ただし、性別コードは男性を'00'、女性を'01'、不明を'99'と
+する。
+
+R-043 より先にしたほうがいいんじゃない？
+
+```{r}
+df_sales_summary %>%
+    gather(key=性別コード,value=売上金額,-年代,na.rm=TRUE) %>%
+    mutate(性別コード=revalue(性別コード,
+                              c('男性'='00','女性'='01','不明'='99')
+                              ))
+```
+
+### 045-058 データ変換
+
+#### R-045
+
+> 顧客データフレーム（df_customer）の生年月日（birth_day）は日付型（Date）でデータ
+を保有している。これをYYYYMMDD形式の文字列に変換し、顧客ID（customer_id）と
+ともに抽出せよ。データは10件を抽出すれば良い。
+
+```{r}
+df_customer %>%
+    select(customer_id,birth_day) %>%
+    mutate(
+        birth_day=strftime(
+            as.POSIXct(birth_day,format='%Y-%m-%d'),
+            format='%Y%m%d'
+        )
+    ) %>% head(10)
+```
+
+#### R-046
+
+> 顧客データフレーム（df_customer）の申し込み日（application_date）はYYYYMMD形
+式の文字列型でデータを保有している。これを日付型（dateやdatetime）に変換し、顧客
+ID（customer_id）とともに抽出せよ。データは10件を抽出すれば良い。
+
+```{r}
+df_customer %>%
+    select(customer_id,application_date) %>%
+    mutate(
+        application_date=as.POSIXct(
+            as.character(application_date),
+            format='%Y%m%d'
+        )
+    ) %>%
+    head(10)
+```
+
+#### R-047
+
+> レシート明細データフレーム（df_receipt）の売上日（sales_ymd）はYYYYMMDD形式の
+数値型でデータを保有している。これを日付型（dateやdatetime）に変換し、レシート番
+号(receipt_no)、レシートサブ番号（receipt_sub_no）とともに抽出せよ。データは10件
+を抽出すれば良い。
+
+```{r}
+df_receipt %>%
+    select(receipt_no,receipt_sub_no,sales_ymd) %>%
+    mutate(
+        sales_ymd=as.POSIXct(
+            as.character(sales_ymd),
+            format='%Y%m%d'
+        )
+    ) %>%
+    head(10)
+```
+
+#### R-048
+
+> レシート明細データフレーム（df_receipt）の売上エポック秒（sales_epoch）は数値型
+のUNIX秒でデータを保有している。これを日付型（POSIXct）に変換し、レシー
+ト番号(receipt_no)、レシートサブ番号（receipt_sub_no）とともに抽出せよ。データは
+10件を抽出すれば良い。
+
+```{r}
+df_receipt %>%
+    select(receipt_no,receipt_sub_no,sales_epoch) %>%
+    mutate(
+        sales_epoch=as.POSIXct(
+            sales_epoch,origin='1970-01-01 00:00:00'
+        )
+    ) %>%
+    head(10)
+```
+
+#### R-049
+
+> レシート明細データフレーム（df_receipt）の売上エポック秒（sales_epoch）を日付型
+（POSIXct）に変換し、"年"だけ取り出してレシート番号(receipt_no)、レシートサブ
+番号（receipt_sub_no）とともに抽出せよ。データは10件を抽出すれば良い。
+
+```{r}
+df_receipt %>%
+    select(receipt_no,receipt_sub_no,sales_epoch) %>%
+    mutate(
+        年=as.POSIXlt(
+            as.POSIXct(
+                sales_epoch,origin='1970-01-01'
+            )
+        )$year +1900
+    ) %>% select(-sales_epoch) %>%
+    head(10)
+```
+
+#### R-050
+
+> レシート明細データフレーム（df_receipt）の売上エポック秒（sales_epoch）を日付型
+（POSIXct）に変換し、"月"だけ取り出してレシート番号(receipt_no)、レシートサブ
+番号（receipt_sub_no）とともに抽出せよ。なお、"月"は0埋め2桁で取り出すこと。デー
+タは10件を抽出すれば良い。
+
+```{r}
+df_receipt %>%
+    select(receipt_no,receipt_sub_no,sales_epoch) %>%
+    mutate(
+        月=sprintf('%02.0f',
+            as.POSIXlt(
+                sales_epoch,origin='1970-01-01 00:00:00'
+            )$mon + 1
+        )
+    ) %>% select(-sales_epoch) %>%
+    head(10)
+```
+
+#### R-051
+
+> レシート明細データフレーム（df_receipt）の売上エポック秒（sales_epoch）を日付型
+（POSIXct）に変換し、"日"だけ取り出してレシート番号(receipt_no)、レシートサブ
+番号（receipt_sub_no）とともに抽出せよ。なお、"日"は0埋め2桁で取り出すこと。デー
+タは10件を抽出すれば良い。
+
+```{r}
+df_receipt %>%
+    select(receipt_no,receipt_sub_no,sales_epoch) %>%
+    mutate(
+        日=sprintf('%02.0f',
+            as.POSIXlt(
+                sales_epoch,origin='1970-01-01 00:00:00'
+            )$mday
+        )
+    ) %>% select(-sales_epoch) %>%
+    head(10)
+```
+
+#### R-052
+
+> レシート明細データフレーム（df_receipt）の売上金額（amount）を顧客ID
+（customer_id）ごとに合計の上、売上金額合計に対して2000円以下を0、2000円超を1に
+2値化し、顧客ID、売上⾦額合計とともに10件表⽰せよ。ただし、顧客IDが"Z"から始まる
+のものは非会員を表すため、除外して計算すること。
+
+```{r}
+df_receipt %>%
+    filter(!startsWith(customer_id,"Z")) %>%
+    group_by(customer_id) %>%
+    dplyr::summarise(売上金額合計=sum(amount)) %>%
+    ungroup() %>%
+    mutate(二値=if_else(売上金額合計<=2000,0,1)) %>%
+    head(10)
+```
+
+#### R-053
+
+> 顧客データフレーム（df_customer）の郵便番号（postal_cd）に対し、東京（先頭3桁が
+100〜209のもの）を1、それ以外のものを0に２値化せよ。さらにレシート明細データフ
+レーム（df_receipt）と結合し、全期間において買い物実績のある顧客数を、作成した2値
+ごとにカウントせよ。
+
+```{r}
+df_tokyo <- df_customer %>% mutate(
+    東京=if_else(postal_cd>='100'&postal_cd <'210',1,0)
+)
+
+
+df_tokyo %>% inner_join(df_receipt,by='customer_id') %>%
+    group_by(東京) %>%
+    dplyr::summarise(顧客数=n_distinct(customer_id))
+```
+
+#### R-054
+
+> 顧客データデータフレーム（df_customer）の住所（address）は、埼玉県、千葉県、東
+京都、神奈川県のいずれかとなっている。都道府県毎にコード値を作成し、顧客ID、住所
+とともに抽出せよ。値は埼玉県を11、千葉県を12、東京都を13、神奈川県を14とするこ
+と。結果は10件表示させれば良い。
+
+```{r}
+df_customer %>%
+    mutate(
+        都道府県コード=as.integer(
+            revalue(
+                substr(address,1,3),
+                c('埼玉県'='11','千葉県'='12','東京都'='13','神奈川'='14')
+            )
+        )
+    ) %>%
+    head(10)
+```
+
+#### R-055
+
+> レシート明細データフレーム（df_receipt）の売上金額（amount）を顧客ID
+（customer_id）ごとに合計し、その合計金額の四分位点を求めよ。その上で、顧客ごと
+の売上金額合計に対して以下の基準でカテゴリ値を作成し、顧客ID、売上金額と合計とも
+に表示せよ。カテゴリ値は上から順に1〜4とする。結果は10件表示させれば良い。
+> 
+> * 最⼩値以上第⼀四分位未満
+> * 第⼀四分位以上第⼆四分位未満
+> * 第⼆四分位以上第三四分位未満
+> * 第三四分位以上
+
+```{r}
+df_ugroup <- df_receipt %>% group_by(customer_id) %>%
+    dplyr::summarise(合計金額=sum(amount)) %>%
+    ungroup()
+
+cl_amount <- quantile(df_ugroup$合計金額)
+
+df_ugroup %>%
+    mutate(カテゴリ値=as.integer(cut(合計金額,breaks=cl_amount))) %>%
+    head(10)
+```
+
+#### R-056
+
+> 顧客データフレーム（df_customer）の年齢（age）をもとに10歳刻みで年代を算出し、
+顧客ID（customer_id）、生年月日（birth_day）とともに抽出せよ。ただし、60歳以上は
+全て60歳代とすること。年代を表すカテゴリ名は任意とする。先頭10件を表示させればよ
+い。
+
+```{r}
+df_customer %>%
+    mutate(年代=if_else(age>=60,60,floor(age/10)*10)) %>%
+    select(customer_id,birth_day,年代) %>%
+    head(10)
+```
+
+#### R-057
+
+> 前問題の抽出結果と性別（gender）を組み合わせ、新たに性別×年代の組み合わせを表す
+カテゴリデータを作成せよ。組み合わせを表すカテゴリの値は任意とする。先頭10件を表
+示させればよい。
+
+```{r}
+df_customer %>%
+    mutate(人層=if_else(age>=60,60,floor(age/10)*10)+as.integer(gender_cd)) %>%
+    select(customer_id,birth_day,人層) %>%
+    head(10)
+```
+
+#### R-058
+
+> 顧客データフレーム（df_customer）の性別コード（gender_cd）をダミー変数化し、顧
+客ID（customer_id）とともに抽出せよ。結果は10件表示させれば良い。
+
+```{r}
+df_customer %>% select(customer_id,gender_cd) %>%
+    mutate(
+        gender_cd=mapvalues(gender_cd,c(0,1,9),c('男','女','不明')),
+        dummy=1
+        ) %>%
+    spread(gender_cd,dummy) %>%
+    mutate(
+        男=replace_na(男,0),
+        不明=replace_na(不明,0),
+        女=replace_na(女,0)
+    ) %>%
+    head(10)
+```
+
+
+### 059-062 数値変換
+
+#### R-059
+
+> レシート明細データフレーム（df_receipt）の売上金額（amount）を顧客ID（customer_id）ごとに合計し、売上金額合計を平均0、標準偏差1に標準化して顧客ID、売上金額合計とともに表示せよ。標準化に使用する標準偏差は、不偏標準偏差と標本標準偏差のどちらでも良いものとする。ただし、顧客IDが"Z"から始まるのものは非会員を表すため、除外して計算すること。結果は10件表示させれば良い。
+
+```{r}
+df_receipt %>%
+    filter(!startsWith(customer_id,'Z')) %>%
+    group_by(customer_id) %>%
+    dplyr::summarise(売上金額合計=sum(amount)) %>%
+    mutate(標準化売上金額=scale(売上金額合計)) %>%
+    head(10)
+```
+
+#### R-060
+
+> レシート明細データフレーム（df_receipt）の売上金額（amount）を顧客ID
+（customer_id）ごとに合計し、合計した売上金額を最小値0、最大値1に正規化して顧客
+ID、売上⾦額合計とともに表⽰せよ。ただし、顧客IDが"Z"から始まるのものは⾮会員を
+表すため、除外して計算すること。結果は10件表示させれば良い。
+
+```{r}
+df_receipt %>%
+    filter(!startsWith(customer_id,'Z')) %>%
+    group_by(customer_id) %>%
+    dplyr::summarise(売上金額合計=sum(amount)) %>%
+    mutate(
+      標準化売上金額=scale(
+        売上金額合計,
+        center=min(売上金額合計),
+        scale=max(売上金額合計)-min(売上金額合計)
+      )
+    ) %>%
+    head(10)
+```
+
+#### R-061
+
+> レシート明細データフレーム（df_receipt）の売上金額（amount）を顧客ID
+（customer_id）ごとに合計し、合計した売上金額を常用対数化（底=10）して顧客ID、
+売上金額合計とともに表示せよ。ただし、顧客IDが"Z"から始まるのものは非会員を表す
+ため、除外して計算すること。結果は10件表示させれば良い。
+
+```{r}
+df_receipt %>%
+    filter(!startsWith(customer_id,'Z')) %>%
+    group_by(customer_id) %>%
+    dplyr::summarise(売上金額合計=sum(amount)) %>%
+    mutate(
+      対数化売上金額=log10(売上金額合計)
+    ) %>%
+    head(10)
+```
+
+#### R-062
+
+> レシート明細データフレーム（df_receipt）の売上金額（amount）を顧客ID
+（customer_id）ごとに合計し、合計した売上金額を自然対数化(底=e）して顧客ID、売上
+金額合計とともに表示せよ。ただし、顧客IDが"Z"から始まるのものは非会員を表すた
+め、除外して計算すること。結果は10件表示させれば良い。
+
+```{r}
+df_receipt %>%
+    filter(!startsWith(customer_id,'Z')) %>%
+    group_by(customer_id) %>%
+    dplyr::summarise(売上金額合計=sum(amount)) %>%
+    mutate(
+      対数化売上金額=log(売上金額合計)
+    ) %>%
+    head(10)
+```
+
+### 063-069 四則演算
+
+#### R-063
+
+> 商品データフレーム（df_product）の単価（unit_price）と原価（unit_cost）から、各商
+品の利益額を算出せよ。結果は10件表示させれば良い。
+
+```{r}
+df_product %>% mutate(利益額=unit_price-unit_cost) %>% head(10)
+```
+
+#### R-064
+
+> 商品データフレーム（df_product）の単価（unit_price）と原価（unit_cost）から、各商
+品の利益率の全体平均を算出せよ。
+ただし、単価と原価にはNULLが存在することに注意せよ。
+
+```{r}
+df_product %>%
+  mutate(利益率=(unit_price-unit_cost)/unit_price) %>%
+  dplyr::summarise(平均利益率=mean(利益率,na.rm=TRUE))
+```
+
+#### R-065
+
+> 商品データフレーム（df_product）の各商品について、利益率が30%となる新たな単価を
+求めよ。ただし、1円未満は切り捨てること。そして結果を10件表示させ、利益率がおよ
+そ30％付近であることを確認せよ。ただし、単価（unit_price）と原価（unit_cost）には
+NULLが存在することに注意せよ。
+
+```{r}
+df_product %>%
+  mutate(新単価=floor(unit_cost/(1-0.3))) %>%
+  mutate(利益率=(新単価-unit_cost)/新単価) %>%
+  head(10)
+```
+
+#### R-066
+
+> 商品データフレーム（df_product）の各商品について、利益率が30%となる新たな単価を
+求めよ。今回は、1円未満を四捨五入すること（0.5については偶数方向の丸めで良い）。
+そして結果を10件表示させ、利益率がおよそ30％付近であることを確認せよ。ただし、単
+価（unit_price）と原価（unit_cost）にはNULLが存在することに注意せよ。
+
+```{r}
+df_product %>%
+  mutate(新単価=round(unit_cost/(1.0-0.3))) %>%
+  mutate(利益率=(新単価-unit_cost)/新単価) %>%
+  head(10)
+```
+
+#### R-067
+
+> 商品データフレーム（df_product）の各商品について、利益率が30%となる新たな単価を
+求めよ。今回は、1円未満を切り上げること。そして結果を10件表示させ、利益率がおよ
+そ30％付近であることを確認せよ。ただし、単価（unit_price）と原価（unit_cost）には
+NULLが存在することに注意せよ。
+
+```{r}
+df_product %>%
+  mutate(新単価=ceiling(unit_cost/(1-0.3)) ) %>%
+  mutate(利益率=(新単価-unit_cost)/新単価) %>%
+  head(10)
+```
+
+#### R-068
+
+> 商品データフレーム（df_product）の各商品について、消費税率10%の税込み金額を求め
+よ。 1円未満の端数は切り捨てとし、結果は10件表示すれば良い。ただし、単価
+（unit_price）にはNULLが存在することに注意せよ。
+
+```{r}
+df_product %>%
+  mutate(税込価格=floor(unit_price*1.1)) %>%
+  head(10)
+```
+
+#### R-069
+
+> レシート明細データフレーム（df_receipt）と商品データフレーム（df_product）を結合
+し、顧客毎に全商品の売上金額合計と、カテゴリ大区分（category_major_cd）が"07"
+（瓶詰缶詰）の売上金額合計を計算の上、両者の比率を求めよ。抽出対象はカテゴリ大区
+分"07"（瓶詰缶詰）の購入実績がある顧客のみとし、結果は10件表示させればよい。
+
+```{r}
+df_receipt %>% inner_join(df_product,by="product_cd") %>%
+  nest(-customer_id) %>%
+  mutate(
+    全商品売上合計=map(data, ~ sum(.$amount)),
+    カテゴリ大区分07売上合計=map(data, ~ sum(
+      filter(.,category_major_cd =='07') %>%
+      select(amount) %>%
+      as.matrix))
+  ) %>%
+  select(customer_id,全商品売上合計,カテゴリ大区分07売上合計) %>%
+  unnest() %>%
+  filter(カテゴリ大区分07売上合計>0) %>%
+  mutate(カテゴリ大区分07割合=カテゴリ大区分07売上合計/全商品売上合計 ) %>%
+  head(10)
+```
+
+### 070-074 日付型の計算
+
+#### R-070
+
+> レシート明細データフレーム（df_receipt）の売上日（sales_ymd）に対し、顧客データ
+フレーム（df_customer）の会員申込日（application_date）からの経過日数を計算し、顧
+客ID（customer_id）、売上日、会員申込日とともに表示せよ。結果は10件表示させれば
+良い（なお、sales_ymdは数値、application_dateは文字列でデータを保持している点に
+注意）。
+
+```{r}
+df_receipt %>% inner_join(df_customer,by='customer_id') %>%
+  mutate(経過日数=as.numeric(
+    strptime(as.character(sales_ymd),'%Y%m%d')-
+    strptime(application_date,'%Y%m%d'),
+    units='days')) %>%
+  select(customer_id,sales_ymd,application_date,経過日数) %>%
+  head(10)
+```
+
+#### R-071
+
+> レシート明細データフレーム（df_receipt）の売上日（sales_ymd）に対し、顧客データ
+フレーム（df_customer）の会員申込日（application_date）からの経過月数を計算し、顧
+客ID（customer_id）、売上日、会員申込日とともに表示せよ。結果は10件表示させれば
+良い（なお、sales_ymdは数値、application_dateは文字列でデータを保持している点に
+注意）。1ヶ月未満は切り捨てること。
+
+```{r}
+df_receipt %>% inner_join(df_customer,by='customer_id') %>%
+  mutate(経過月数=floor(as.numeric(
+    strptime(as.character(sales_ymd),'%Y%m%d')-
+    strptime(application_date,'%Y%m%d'),
+    units='days')/30)) %>%
+  select(customer_id,sales_ymd,application_date,経過月数) %>%
+  head(10)
+```
+
+#### R-072
+
+> レシート明細データフレーム（df_receipt）の売上日（sales_ymd）に対し、顧客データ
+フレーム（df_customer）の会員申込日（application_date）からの経過年数を計算し、顧
+客ID（customer_id）、売上日、会員申込日とともに表示せよ。結果は10件表示させれば
+良い。（なお、sales_ymdは数値、application_dateは文字列でデータを保持している点
+に注意）。1年未満は切り捨てること。
+
+```{r}
+df_receipt %>% inner_join(df_customer,by='customer_id') %>%
+  mutate(経過年数=floor(as.numeric(
+    strptime(as.character(sales_ymd),'%Y%m%d')-
+    strptime(application_date,'%Y%m%d'),
+    units='days')/365.24)) %>%
+  select(customer_id,sales_ymd,application_date,経過年数) %>%
+  head(10)
+```
+
+#### R-073
+
+> レシート明細データフレーム（df_receipt）の売上日（sales_ymd）に対し、顧客データ
+フレーム（df_customer）の会員申込日（application_date）からのエポック秒による経過
+時間を計算し、顧客ID（customer_id）、売上日、会員申込日とともに表示せよ。結果は
+10件表⽰させれば良い（なお、sales_ymdは数値、application_dateは⽂字列でデータを
+保持している点に注意）。なお、時間情報は保有していないため各日付は0時0分0秒を表
+すものとする。
+
+```{r}
+df_receipt %>% inner_join(df_customer,by='customer_id') %>%
+  mutate(経過秒数=as.numeric(
+    strptime(as.character(sales_ymd),'%Y%m%d')-
+    strptime(application_date,'%Y%m%d'),
+    units='secs')) %>%
+  select(customer_id,sales_ymd,application_date,経過秒数) %>%
+  head(10)
+```
+
+#### R-074
+
+> レシート明細データフレーム（df_receipt）の売上日（sales_ymd）に対し、当該週の月
+曜日からの経過日数を計算し、売上日、当該週の月曜日付とともに表示せよ。結果は10件
+表示させれば良い（なお、sales_ymdは数値でデータを保持している点に注意）。
+
+```{r}
+df_receipt %>%
+  mutate(経過日数=strptime(as.character(sales_ymd),'%Y%m%d')$wday - 1) %>%
+  mutate(経過日数=ifelse(経過日数<0,6,経過日数)) %>%
+  mutate(当該週の月曜=(strptime(as.character(sales_ymd),'%Y%m%d') - as.difftime(経過日数,units='days')) ) %>%
+  select(customer_id,sales_ymd,当該週の月曜,経過日数) %>%
+  head(10)
+```
+
+### 075-076 サンプリング
+
+#### R-075
+
+> 顧客データフレーム（df_customer）からランダムに1%のデータを抽出し、先頭から10件
+データを抽出せよ。
+
+```{r}
+df_customer %>% sample_frac(0.01) %>% head(10)
+```
+
+#### R-076
+
+> 顧客データフレーム（df_customer）から性別（gender_cd）の割合に基づきランダムに
+10%のデータを層化抽出データし、性別ごとに件数を集計せよ。
+
+```{r}
+df_customer %>% nest(-gender_cd) %>%
+  mutate(件数=map(data,~nrow(sample_frac(.,0.1))) ) %>%
+  select(gender_cd,件数) %>%
+  unnest()
+```
+
+### 077-078 外れ値・異常値
+
+#### R-077
+
+> レシート明細データフレーム（df_receipt）の売上金額（amount）を顧客単位に合計し、
+合計した売上金額の外れ値を抽出せよ。ただし、顧客IDが"Z"から始まるのものは非会員
+を表すため、除外して計算すること。なお、ここでは外れ値を平均から3σ以上離れたも
+のとする。結果は10件表示させれば良い。
+
+```{r}
+df_receipt %>% filter(!startsWith(customer_id,'Z')) %>%
+  group_by(customer_id) %>%
+  dplyr::summarise(売上金額合計=sum(amount)) %>%
+  filter(
+    abs(売上金額合計 - mean(売上金額合計)) >= 3*sd(売上金額合計)
+  ) %>%
+  head(10)
+```
+
+#### R-078
+
+> レシート明細データフレーム（df_receipt）の売上金額（amount）を顧客単位に合計し、
+合計した売上金額の外れ値を抽出せよ。ただし、顧客IDが"Z"から始まるのものは非会員
+を表すため、除外して計算すること。なお、ここでは外れ値を第一四分位と第三四分位の
+差であるIQRを用いて、「第一四分位数-1.5×IQR」よりも下回るもの、または「第三四分
+位数+1.5×IQR」を超えるものとする。結果は10件表示させれば良い。
+
+```{r}
+df_a <- df_receipt %>%
+    filter(!startsWith(customer_id,'Z')) %>%
+    group_by(customer_id) %>%
+    dplyr::summarise(売上金額合計=sum(amount))
+
+qr <- quantile(df_a$売上金額合計)
+
+df_a %>% filter(
+  売上金額合計 < qr['25%']-1.5*(qr['75%']-qr['25%']) |
+  売上金額合計 > qr['75%']+1.5*(qr['75%']-qr['25%'])
+) %>% head(10)
+  
+```
+
+### 079-083 欠損値
+
+#### R-079
+
+> 商品データフレーム（df_product）の各項目に対し、欠損数を確認せよ。
+
+```{r}
+df_product %>% mutate_all(is.na) %>% dplyr::summarise_all(sum)
+```
+
+#### R-080
+
+> 商品データフレーム（df_product）のいずれかの項目に欠損が発生しているレコードを全
+て削除した新たなdf_product_1を作成せよ。なお、削除前後の件数を表示させ、前設問で
+確認した件数だけ減少していることも確認すること。
+
+```{r}
+print(nrow(df_product))
+
+df_product_1 <- filter_all(df_product, ~!is.na(.))
+
+print(nrow(df_product_1))
+```
+
+#### R-081
+
+> 単価（unit_price）と原価（unit_cost）の欠損値について、それぞれの平均値で補完した
+新たなdf_product_2を作成せよ。なお、平均値について1円未満は四捨五入とし、0.5につ
+いては偶数寄せでかまわない。補完実施後、各項目について欠損が生じていないことも確
+認すること。
+
+```{r}
+df_product_2 <- df_product %>% mutate(
+  unit_price=ifelse(is.na(unit_price),round(mean(df_product$unit_price,na.rm=TRUE)),unit_price),
+  unit_cost=ifelse(is.na(unit_cost),round(mean(df_product$unit_cost,na.rm=TRUE)),unit_cost)
+)
+
+sum(is.na(df_product_2 %>% select(unit_cost,unit_price)))
+```
+
+#### R-082
+
+> 単価（unit_price）と原価（unit_cost）の欠損値について、それぞれの中央値で補完した
+新たなdf_product_3を作成せよ。なお、中央値について1円未満は四捨五入とし、0.5につ
+いては偶数寄せでかまわない。補完実施後、各項目について欠損が生じていないことも確
+認すること
+
+```{r}
+df_product_3 <- df_product %>% mutate(
+  unit_price=ifelse(is.na(unit_price),round(median(df_product$unit_price,na.rm=TRUE)),unit_price),
+  unit_cost=ifelse(is.na(unit_cost),round(median(df_product$unit_cost,na.rm=TRUE)),unit_cost)
+)
+
+sum(is.na(df_product_3 %>% select(unit_cost,unit_price)))
+```
+
+#### R-083
+
+> 単価（unit_price）と原価（unit_cost）の欠損値について、各商品の小区分
+（category_small_cd）ごとに算出した中央値で補完した新たなdf_product_4を作成せ
+よ。なお、中央値について1円未満は四捨五入とし、0.5については偶数寄せでかまわな
+い。補完実施後、各項目について欠損が生じていないことも確認すること。
+
+```{r}
+df_product_4 <- df_product %>% nest(-category_small_cd) %>%
+  mutate(data=map(data,~mutate(
+    .,
+    unit_cost=ifelse(is.na(unit_cost),
+                     round(median(unit_cost,na.rm=TRUE)),
+                     unit_cost),
+    unit_price=ifelse(is.na(unit_price),
+                     round(median(unit_price,na.rm=TRUE)),
+                     unit_price)
+  ))) %>% unnest()
+
+sum(is.na(df_product_4 %>% select(unit_cost,unit_price)))
+```
+
+### 084 除算エラー対応
+
+#### R-084
+
+> 顧客データフレーム（df_customer）の全顧客に対し、全期間の売上金額に占める2019年売上金額の割合を計算せよ。ただし、販売実績のない場合は0として扱うこと。そして計算した割合が0超のものを抽出せよ。 結果は10件表示させれば良い。また、作成したデー
+タにNAやNANが存在しないことを確認せよ。
+
+```{r}
+df_a <- df_customer %>% inner_join(df_receipt,by='customer_id') %>%
+  mutate(sales_y=strptime(sales_ymd,'%Y%m%d')$year+1900) %>%
+  group_by(customer_id,sales_y) %>%
+  dplyr::summarise(合計金額=sum(amount)) %>%
+  ungroup() %>% nest(-customer_id) %>%
+  mutate(割合=map(data,~ (
+      filter(.,sales_y==2019)$合計金額 / sum(.$合計金額)
+    ))
+  ) %>% select(customer_id,割合) %>%
+  unnest()
+df_a %>% head(10)
+print(sum(is.na(df_a)))
+```
+
+### 085-086 座標データ
+
+#### R-085
+
+> 顧客データフレーム（df_customer）の全顧客に対し、郵便番号（postal_cd）を用いて経
+度緯度変換用データフレーム（df_geocode）を紐付け、新たなdf_customer_1を作成せ
+よ。ただし、複数紐づく場合は経度（longitude）、緯度（latitude）それぞれ平均を算出
+すること。
+
+```{r}
+df_customer_1 <- df_customer %>%
+  inner_join(df_geocode,by='postal_cd') %>%
+  group_by(customer_id) %>%
+  dplyr::summarize(
+    latitude=mean(latitude,na.rm = TRUE),
+    longitude=mean(longitude,na.rm = TRUE)
+  ) %>% ungroup() %>% inner_join(df_customer,by='customer_id')
+```
+
+#### R-086 {.tabset}
+
+> 前設問で作成した緯度経度つき顧客データフレーム（df_customer_1）に対し、申込み店
+舗コード（application_store_cd）をキーに店舗データフレーム（df_store）と結合せ
+よ。そして申込み店舗の緯度（latitude）・経度情報（longitude)と顧客の緯度・経度を用
+いて距離（km）を求め、顧客ID（customer_id）、顧客住所（address）、店舗住所
+（address）とともに表示せよ。計算式は簡易式で良いものとするが、その他精度の高い
+方式を利用したライブラリを利用してもかまわない。結果は10件表示すれば良い。
+
+##### 平面近似
+
+* 緯度差と経度差が十分に小さい時(1度未満など)には緯線と経線を直角とし、直線距離を斜辺とする直角三角形であるとみなせる。
+* 緯度は地球上で同じ長さであるが、経度は大体 cos(緯度) の長さに小さくなることを考慮する。
+* 子午線(緯線)一周は約40000 km であることを利用して、角度を km に変換する。
+  * 緯度1分角の移動距離が約1海里(=1.852 km)なので、これを用いても変換してもいい。
+
+$$ \begin{eqnarray}
+緯度（度）：\phi \\
+経度（度）：\lambda \\
+L=\frac{20000}{180}
+\sqrt{
+  (\phi_1 - \phi_2)^2 + \left\{
+    \cos\left(\frac{\phi_1 + \phi_2}{2}\right) (\lambda_1 - \lambda_2)
+  \right\}^2
+}
+\end{eqnarray}
+$$
+
+```{r}
+df_customer_1 %>% inner_join(df_store,by=c('application_store_cd'='store_cd')) %>%
+  mutate(
+    dlat=(latitude.x-latitude.y),
+    dlng=(longitude.x-longitude.y)
+  ) %>%
+  mutate(distance=sqrt(
+    (dlng *cos(pi*(latitude.x+latitude.y)/360))**2 +
+     dlat*dlat
+  )*20000/180) %>%
+  select(customer_id,
+         latitude.x,longitude.x,
+         latitude.y,longitude.y,
+         distance) %>%
+    head(10)
+```
+
+##### 球面三角法
+
+
+* 北極または南極を経度差の角度を持つ一つの頂点として、2点から極までの２つの緯線を辺とする球面上の三角形を考えると残りの1辺が球面上の最短距離(大圏コース)になる。
+* この2点間の最短距離を球面余弦定理で求める。
+* 子午線(緯線)一周は約40000 km であることを利用して、ラジアンを km に変換する。
+  * 平均地球半径約6371 kmを用いて変換してもいい。
+
+$$ \begin{eqnarray}
+緯度（ラジアン）：\phi \\
+経度（ラジアン）：\lambda \\
+L = \frac{20000}{\pi}
+\arccos\{
+  \sin \phi_1 \sin \phi_2
++ \cos \phi_1 \cos \phi_2 \cos(\lambda_1 − \lambda_2)\}
+\end{eqnarray}
+$$
+
+```{r}
+df_customer_1 %>% inner_join(df_store,by=c('application_store_cd'='store_cd')) %>%
+  mutate(
+    plat.x=pi*latitude.x/180,
+    plat.y=pi*latitude.y/180
+  ) %>%
+  mutate(distance=acos(sin(plat.x)*sin(plat.y)+
+      cos(plat.x)*cos(plat.y)*cos((longitude.x-longitude.y)*pi/180)
+  )*20000/pi) %>%
+  select(customer_id,
+         latitude.x,longitude.x,
+         latitude.y,longitude.y,
+         distance) %>%
+    head(10)
+
+```
+
+### 087-088 名寄せ
+
+#### R-087
+
+> 顧客データフレーム（df_customer）では、異なる店舗での申込みなどにより同一顧客が
+複数登録されている。名前（customer_name）と郵便番号（postal_cd）が同じ顧客は同
+一顧客とみなし、1顧客1レコードとなるように名寄せした名寄顧客データフレーム
+（df_customer_u）を作成せよ。ただし、同一顧客に対しては売上金額合計が最も高いも
+のを残すものとし、売上金額合計が同一もしくは売上実績の無い顧客については顧客ID
+（customer_id）の番号が小さいものを残すこととする。
+
+```{r}
+df_customer_u <- df_customer %>%
+  left_join(df_receipt,by='customer_id') %>%
+  group_by(customer_id,customer_name,postal_cd) %>%
+  dplyr::summarise(売上金額合計=sum(amount,na.rm=TRUE)) %>%
+  ungroup() %>%
+  arrange(desc(売上金額合計),customer_id) %>%
+  group_by(customer_name,postal_cd) %>%
+  dplyr::summarize(customer_id=first(customer_id)) 
+```
+
+#### R-088
+
+> 前設問で作成したデータを元に、顧客データフレームに統合名寄IDを付与したデータフ
+レーム（df_customer_n）を作成せよ。ただし、統合名寄IDは以下の仕様で付与するもの
+とする。
+> 
+> * 重複していない顧客：顧客ID（customer_id）を設定
+> * 重複している顧客：前設問で抽出したレコードの顧客IDを設定
+
+```{r}
+df_customer_n <- df_customer %>%
+  inner_join(df_customer_u, by=c('customer_name','postal_cd')) %>%
+  dplyr::rename(customer_id=customer_id.x,
+         統合名寄ID=customer_id.y)
+```
+
+### 089-090 データ分割
+
+#### R-089
+
+> 売上実績のある顧客に対し、予測モデル構築のため学習用データとテスト用データに分割
+したい。それぞれ8:2の割合でランダムにデータを分割せよ。
+
+```{r}
+df_receipt %>% group_by(customer_id) %>%
+  dplyr::summarise(sum_amount=sum(amount)) %>%
+  filter(sum_amount>0) %>%
+  mutate(test_flag=replace(
+    rep(FALSE,n()),
+    sample(n(),n()*0.2),
+    TRUE
+  )) %>%
+  head(10)
+```
+
+#### R-090
+
+> レシート明細データフレーム（df_receipt）は2017年1月1日〜2019年10月31日までのデー
+タを有している。売上金額（amount）を月次で集計し、学習用に12ヶ月、テスト用に6ヶ
+月のモデル構築用データを3セット作成せよ。
+
+```{r}
+df_rec_tri <- df_receipt %>%
+  mutate(mon=substring(as.character(sales_ymd),1,6) ) %>%
+  group_by(mon)%>%
+  dplyr::summarize(月次売上=sum(amount)) %>%
+  rolling_origin(initial=12,assess=6,cumulative=FALSE,skip=6)
+
+analysis(df_rec_tri$splits[[1]])
+assessment(df_rec_tri$splits[[1]])
+
+analysis(df_rec_tri$splits[[2]])
+assessment(df_rec_tri$splits[[2]])
+
+analysis(df_rec_tri$splits[[3]])
+assessment(df_rec_tri$splits[[3]])
+```
+
+### 091 不均衡データ
+
+#### R-091
+
+> 顧客データフレーム（df_customer）の各顧客に対し、売上実績のある顧客数と売上実績
+のない顧客数が1:1となるようにアンダーサンプリングで抽出せよ。
+
+```{r}
+df_customer_under_sample <- df_customer %>% left_join(
+  df_receipt %>%
+    group_by(customer_id) %>%
+    dplyr::summarise(sum_amount=sum(amount)) %>%
+    filter(sum_amount>0),
+  by='customer_id') %>%
+  filter(
+    replace(
+      !is.na(sum_amount),
+      sample(
+        which(is.na(sum_amount)),
+        sum(!is.na(sum_amount))
+      ),
+      TRUE
+    )
+  )
+```
+
+### 092-094 正規化・非正規化
+
+#### R-092
+
+> 顧客データフレーム（df_customer）では、性別に関する情報が非正規化の状態で保持さ
+れている。これを第三正規化せよ。
+
+```{r}
+df_gender <- df_customer %>%
+  select(gender_cd,gender) %>%
+  distinct(gender_cd,gender)
+
+df_customer %>% select(-gender) %>%
+  head(10)
+```
+
+#### R-093
+
+> 商品データフレーム（df_product）では各カテゴリのコード値だけを保有し、カテゴリ名
+は保有していない。カテゴリデータフレーム（df_category）と組み合わせて非正規化
+し、カテゴリ名を保有した新たな商品データフレームを作成せよ。
+
+```{r}
+df_product_with_category <- df_product %>%
+  inner_join(df_category,by="category_small_cd",suffix=c('','.y')) %>%
+  select(-category_major_cd.y,-category_medium_cd.y) 
+```
+
+#### R-094
+
+> 先に作成したカテゴリ名付き商品データを以下の仕様でファイル出力せよ。なお、出力先
+のパスはdata配下とする。
+>
+> * ファイル形式はCSV（カンマ区切り）
+> * ヘッダ有り
+> * ⽂字コードはUTF-8
+
+```{r}
+write.csv(df_product_with_category,
+          'data/product_with_category.csv',
+          row.names=FALSE,col.names=TRUE,fileEncoding='UTF-8')
+```
+
+### 095-100 ファイル入出力
+
+#### R-095
+
+> 先に作成したカテゴリ名付き商品データを以下の仕様でファイル出力せよ。なお、出力先
+のパスはdata配下とする。
+> 
+> * ファイル形式はCSV（カンマ区切り）
+> * ヘッダ有り
+> * ⽂字コードはCP932
+
+```{r}
+write.csv(df_product_with_category,
+          'data/product_with_category_sjis.csv',
+          row.names=FALSE,col.names=TRUE,fileEncoding='CP932')
+```
+
+#### R-096
+
+> 先に作成したカテゴリ名付き商品データを以下の仕様でファイル出力せよ。なお、出力先
+のパスはdata配下とする。
+>
+> * ファイル形式はCSV（カンマ区切り）
+> * ヘッダ無し
+> * ⽂字コードはUTF-8
+
+```{r}
+write.table(df_product_with_category,
+          'data/product_with_category_nohead.csv',
+          row.names=FALSE,col.names=c(FALSE),
+          sep=',',
+          fileEncoding='UTF-8')
+```
+
+#### R-097
+
+> 先に作成した以下形式のファイルを読み込み、データフレームを作成せよ。また、先頭10
+件を表示させ、正しくとりまれていることを確認せよ。
+> 
+> * ファイル形式はCSV（カンマ区切り）
+> * ヘッダ有り
+> * ⽂字コードはUTF-8
+
+```{r}
+df_product_with_category_t <- read.csv('data/product_with_category.csv',
+          fileEncoding='UTF-8')
+head(df_product_with_category_t,10)
+```
+
+#### R-098
+
+> 先に作成した以下形式のファイルを読み込み、データフレームを作成せよ。また、先頭10
+件を表示させ、正しくとりまれていることを確認せよ。
+> 
+> * ファイル形式はCSV（カンマ区切り）
+> * ヘッダ無し
+> * ⽂字コードはUTF-8
+
+```{r}
+df_product_with_category_t <- read.csv(
+  'data/product_with_category_nohead.csv',
+  header = FALSE,
+  fileEncoding='UTF-8')
+head(df_product_with_category_t,10)
+```
+
+#### R-099
+
+> 先に作成したカテゴリ名付き商品データを以下の仕様でファイル出力せよ。なお、出力先
+のパスはdata配下とする。
+>
+> * ファイル形式はTSV（タブ区切り）
+> * ヘッダ有り
+> * ⽂字コードはUTF-8
+
+```{r}
+write.table(df_product_with_category,
+          'data/product_with_category.tsv',
+          row.names=FALSE,col.names=TRUE,
+          sep='\t',
+          fileEncoding='UTF-8')
+```
+
+#### R-100
+
+> 先に作成した以下形式のファイルを読み込み、データフレームを作成せよ。また、先頭10件を表示させ、正しくとりまれていることを確認せよ。
+>
+> * ファイル形式はTSV（タブ区切り）
+> * ヘッダ有り
+> * ⽂字コードはUTF-8
+
+```{r}
+df_product_with_category_t <- read.table(
+  'data/product_with_category.tsv',
+  header = TRUE,sep='\t',
+  fileEncoding='UTF-8')
+head(df_product_with_category_t,10)
+```
+
+
+

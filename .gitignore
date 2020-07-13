@@ -1,0 +1,8 @@
+node_modules
+package-lock.json
+.Rproj.user
+.RData
+.Rhistory
+work.Rproj
+
+docker/work/data/product_with_*
