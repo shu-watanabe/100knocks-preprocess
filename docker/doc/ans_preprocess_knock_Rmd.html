@@ -2441,7 +2441,7 @@ df_geocode &lt;- read.csv(
     dplyr::summarise(
         平均売上金額=mean(amount)) %&gt;%
     arrange(desc(平均売上金額)) %&gt;%
-    head(5)</code></pre>
+    top_n(5,平均売上金額)</code></pre>
 <pre><code>## # A tibble: 5 x 2
 ##   store_cd 平均売上金額
 ##   &lt;chr&gt;           &lt;dbl&gt;
@@ -2460,15 +2460,16 @@ df_geocode &lt;- read.csv(
     dplyr::summarise(
         中央値売上金額=median(amount)) %&gt;%
     arrange(desc(中央値売上金額)) %&gt;%
-    head(5)</code></pre>
-<pre><code>## # A tibble: 5 x 2
+    top_n(5,中央値売上金額)</code></pre>
+<pre><code>## # A tibble: 6 x 2
 ##   store_cd 中央値売上金額
 ##   &lt;chr&gt;             &lt;dbl&gt;
 ## 1 S13052              190
 ## 2 S14010              188
 ## 3 S14050              185
 ## 4 S13003              180
-## 5 S13018              180</code></pre>
+## 5 S13018              180
+## 6 S14040              180</code></pre>
 </div>
 <div id="r-029" class="section level4">
 <h4>R-029</h4>
@@ -2500,45 +2501,51 @@ df_geocode &lt;- read.csv(
 <div id="r-030" class="section level4">
 <h4>R-030</h4>
 <blockquote>
-<p>レシート明細データフレーム（df_receipt）に対し、店舗コード（store_cd）ごとに売上 金額（amount）の標本分散を計算し、降順でTOP5を表示せよ。</p>
+<p>レシート明細データフレーム（df_receipt）に対し、店舗コード（store_cd）ごとに売上金額（amount）の標本分散を計算し、降順でTOP5を表示せよ。</p>
 </blockquote>
+<p><code>var()</code> は不偏分散を計算するため、2乗平均から計算するほうが確実。</p>
 <pre class="r"><code>df_receipt %&gt;% group_by(store_cd) %&gt;%
     dplyr::summarise(
-        標本分散売上金額=var(amount)) %&gt;%
+        不偏分散売上金額=var(amount),
+        標本分散売上金額=mean(amount**2)-mean(amount)**2
+    ) %&gt;%
     arrange(desc(標本分散売上金額)) %&gt;%
-    head(5)</code></pre>
-<pre><code>## # A tibble: 5 x 2
-##   store_cd 標本分散売上金額
-##   &lt;chr&gt;               &lt;dbl&gt;
-## 1 S13052            441863.
-## 2 S14011            306442.
-## 3 S14034            297068.
-## 4 S13001            295559.
-## 5 S13015            295427.</code></pre>
+    top_n(5,標本分散売上金額)</code></pre>
+<pre><code>## # A tibble: 5 x 3
+##   store_cd 不偏分散売上金額 標本分散売上金額
+##   &lt;chr&gt;               &lt;dbl&gt;            &lt;dbl&gt;
+## 1 S13052            441863.          440089.
+## 2 S14011            306442.          306315.
+## 3 S14034            297068.          296920.
+## 4 S13001            295559.          295432.
+## 5 S13015            295427.          295294.</code></pre>
 </div>
 <div id="r-031" class="section level4">
 <h4>R-031</h4>
 <blockquote>
-<p>レシート明細データフレーム（df_receipt）に対し、店舗コード（store_cd）ごとに売上 金額（amount）の標本標準偏差を計算し、降順でTOP5を表示せよ。</p>
+<p>レシート明細データフレーム（df_receipt）に対し、店舗コード（store_cd）ごとに売上金額（amount）の標本標準偏差を計算し、降順でTOP5を表示せよ。</p>
 </blockquote>
+<p><code>sd()</code> は不偏標準偏差を計算するため、2乗平均から計算するほうが確実。</p>
 <pre class="r"><code>df_receipt %&gt;% group_by(store_cd) %&gt;%
     dplyr::summarise(
-        標本標準偏差売上金額=sd(amount)) %&gt;%
+        不偏標準偏差売上金額=sd(amount),
+        標本標準偏差売上金額=sqrt(mean(amount**2)-mean(amount)**2)
+    ) %&gt;%
     arrange(desc(標本標準偏差売上金額)) %&gt;%
-    head(5)</code></pre>
-<pre><code>## # A tibble: 5 x 2
-##   store_cd 標本標準偏差売上金額
-##   &lt;chr&gt;                   &lt;dbl&gt;
-## 1 S13052                   665.
-## 2 S14011                   554.
-## 3 S14034                   545.
-## 4 S13001                   544.
-## 5 S13015                   544.</code></pre>
+    top_n(5,標本標準偏差売上金額)</code></pre>
+<pre><code>## # A tibble: 5 x 3
+##   store_cd 不偏標準偏差売上金額 標本標準偏差売上金額
+##   &lt;chr&gt;                   &lt;dbl&gt;                &lt;dbl&gt;
+## 1 S13052                   665.                 663.
+## 2 S14011                   554.                 553.
+## 3 S14034                   545.                 545.
+## 4 S13001                   544.                 544.
+## 5 S13015                   544.                 543.</code></pre>
 </div>
 <div id="r-032" class="section level4">
 <h4>R-032</h4>
 <blockquote>
-<p>レシート明細データフレーム（df_receipt）の売上金額（amount）について、25％刻みで パーセンタイル値を求めよ。</p>
+<p>レシート明細データフレーム（df_receipt）の売上金額（amount）について、25％刻みでパーセンタイル値を求めよ。</p>
 </blockquote>
 <pre class="r"><code>quantile(df_receipt[,&#39;amount&#39;])</code></pre>
 <pre><code>##    0%   25%   50%   75%  100% 
@@ -2778,7 +2785,7 @@ print(full_join(df_nday,df_camount,by=&#39;customer_id&#39;)%&gt;% as.data.frame
 <div id="r-041" class="section level4">
 <h4>R-041</h4>
 <blockquote>
-<p>レシート明細データフレーム（df_receipt）の売上金額（amount）を日付（sales_ymd） ごとに集計し、前日からの売上金額増減を計算せよ。なお、計算結果は10件表示すればよ い。</p>
+<p>レシート明細データフレーム（df_receipt）の売上金額（amount）を日付（sales_ymd）ごとに集計し、前日からの売上金額増減を計算せよ。なお、計算結果は10件表示すればよ い。</p>
 </blockquote>
 <pre class="r"><code>df_receipt %&gt;% group_by(sales_ymd) %&gt;%
     dplyr::summarise(合計売上金額=sum(amount)) %&gt;%
@@ -2803,7 +2810,7 @@ print(full_join(df_nday,df_camount,by=&#39;customer_id&#39;)%&gt;% as.data.frame
 <div id="r-042" class="section level4">
 <h4>R-042</h4>
 <blockquote>
-<p>レシート明細データフレーム（df_receipt）の売上金額（amount）を日付（sales_ymd） ごとに集計し、各日付のデータに対し、１日前、２日前、３日前のデータを結合せよ。結 果は10件表示すればよい。</p>
+<p>レシート明細データフレーム（df_receipt）の売上金額（amount）を日付（sales_ymd）ごとに集計し、各日付のデータに対し、１日前、２日前、３日前のデータを結合せよ。結果は10件表示すればよい。</p>
 </blockquote>
 <p>R-041 より先にやったほうがいい。</p>
 <pre class="r"><code>df_receipt %&gt;% group_by(sales_ymd) %&gt;%
@@ -2836,7 +2843,7 @@ print(full_join(df_nday,df_camount,by=&#39;customer_id&#39;)%&gt;% as.data.frame
 <div id="r-043" class="section level4">
 <h4>R-043</h4>
 <blockquote>
-<p>レシート明細データフレーム（df_receipt）と顧客データフレーム（df_customer）を結 合し、性別（gender）と年代（ageから計算）ごとに売上金額（amount）を合計した売上 サマリデータフレーム（df_sales_summary）を作成せよ。性別は0が男性、1が女性、9が 不明を表すものとする。 ただし、項目構成は年代、女性の売上金額、男性の売上金額、性別不明の売上金額の4項 目とすること（縦に年代、横に性別のクロス集計）。また、年代は10歳ごとの階級とする こと。</p>
+<p>レシート明細データフレーム（df_receipt）と顧客データフレーム（df_customer）を結合し、性別（gender）と年代（ageから計算）ごとに売上金額（amount）を合計した売上サマリデータフレーム（df_sales_summary）を作成せよ。性別は0が男性、1が女性、9が不明を表すものとする。 ただし、項目構成は年代、女性の売上金額、男性の売上金額、性別不明の売上金額の4項目とすること（縦に年代、横に性別のクロス集計）。また、年代は10歳ごとの階級とすること。</p>
 </blockquote>
 <pre class="r"><code>df_sales_summary &lt;- df_receipt %&gt;%
     inner_join(
@@ -2895,7 +2902,7 @@ print(df_sales_summary)</code></pre>
 <div id="r-045" class="section level4">
 <h4>R-045</h4>
 <blockquote>
-<p>顧客データフレーム（df_customer）の生年月日（birth_day）は日付型（Date）でデータ を保有している。これをYYYYMMDD形式の文字列に変換し、顧客ID（customer_id）と ともに抽出せよ。データは10件を抽出すれば良い。</p>
+<p>顧客データフレーム（df_customer）の生年月日（birth_day）は日付型（Date）でデータを保有している。これをYYYYMMDD形式の文字列に変換し、顧客ID（customer_id）とともに抽出せよ。データは10件を抽出すれば良い。</p>
 </blockquote>
 <pre class="r"><code>df_customer %&gt;%
     select(customer_id,birth_day) %&gt;%
@@ -3722,38 +3729,38 @@ df_ugroup %&gt;%
 </blockquote>
 <pre class="r"><code>df_customer %&gt;% sample_frac(0.01) %&gt;% head(10)</code></pre>
 <pre><code>##       customer_id customer_name gender_cd gender  birth_day age postal_cd
-## 1  CS033612000069     小柳 奈央         1   女性 1949-06-12  69  245-0018
-## 2  CS015613000143   玉田 真悠子         1   女性 1986-11-07  32  251-0016
-## 3  CS014714000029   宍戸 しほり         1   女性 1947-12-04  71  263-0014
-## 4  CS004313000038     小川 季衣         1   女性 1982-07-26  36  166-0001
-## 5  CS008314000022   島崎 真悠子         1   女性 1987-05-07  31  157-0067
-## 6  CS026415000206   城戸 たまき         1   女性 1969-05-14  49  251-0045
-## 7  CS007714000013     奥村 愛梨         1   女性 1939-06-30  79  285-0845
-## 8  CS006405000002       堀 碧海         0   男性 1977-10-28  41  224-0006
-## 9  CS031515000047     奥山 詩織         1   女性 1964-10-24  54  151-0065
-## 10 CS034502000039 川瀬 ジョージ         0   男性 1959-05-31  59  213-0013
-##                                 address application_store_cd application_date
-## 1  神奈川県横浜市泉区上飯田町**********               S14033         20141227
-## 2        神奈川県藤沢市弥勒寺**********               S13015         20150123
-## 3  千葉県千葉市稲毛区作草部町**********               S12014         20150212
-## 4        東京都杉並区阿佐谷北**********               S13004         20141115
-## 5        東京都世田谷区喜多見**********               S13008         20150417
-## 6    神奈川県藤沢市辻堂東海岸**********               S14026         20151116
-## 7          千葉県佐倉市西志津**********               S12007         20150319
-## 8  神奈川県横浜市都筑区荏田東**********               S14006         20150511
-## 9          東京都渋谷区大山町**********               S13031         20150131
-## 10   神奈川県川崎市高津区末長**********               S14034         20150613
+## 1  CS012703000026     高井 米蔵         0   男性 1940-01-11  79  231-0802
+## 2  CS011302000015   鹿手袋 ヒロ         0   男性 1984-10-03  34  211-0066
+## 3  CS002513000682     福士 美幸         1   女性 1965-06-02  53  184-0015
+## 4  CS022403000055       田口 豊         0   男性 1977-09-02  41  240-0113
+## 5  CS039414000035     吉井 知世         1   女性 1976-05-24  42  167-0051
+## 6  CS033415000249   大槻 瑠璃亜         1   女性 1976-07-31  42  246-0022
+## 7  CS018613000022     小菅 美嘉         1   女性 1951-04-23  67  204-0022
+## 8  CS027515000247       高田 薫         1   女性 1959-05-27  59  251-0031
+## 9  CS026202000009     三船 雅彦         0   男性 1996-11-13  22  251-0021
+## 10 CS027512000015     会田 怜奈         1   女性 1961-05-26  57  251-0042
+##                                   address application_store_cd application_date
+## 1      神奈川県横浜市中区小港町**********               S14012         20170514
+## 2  神奈川県川崎市中原区今井西町**********               S14011         20151129
+## 3        東京都小金井市貫井北町**********               S13002         20170709
+## 4      神奈川県三浦郡葉山町長柄**********               S14022         20180504
+## 5              東京都杉並区荻窪**********               S13039         20150117
+## 6    神奈川県横浜市瀬谷区三ツ境**********               S14033         20151030
+## 7              東京都清瀬市松山**********               S13018         20150426
+## 8      神奈川県藤沢市鵠沼藤が谷**********               S14027         20150708
+## 9        神奈川県藤沢市鵠沼神明**********               S14026         20151003
+## 10       神奈川県藤沢市辻堂新町**********               S14027         20150510
 ##       status_cd
 ## 1  0-00000000-0
 ## 2  0-00000000-0
 ## 3  0-00000000-0
 ## 4  0-00000000-0
-## 5  C-20100423-B
-## 6  9-20090526-A
-## 7  0-00000000-0
-## 8  0-00000000-0
-## 9  A-20091204-C
-## 10 0-00000000-0</code></pre>
+## 5  D-20101009-D
+## 6  D-20100415-E
+## 7  1-20100802-2
+## 8  C-20100912-A
+## 9  0-00000000-0
+## 10 5-20091005-6</code></pre>
 </div>
 <div id="r-076" class="section level4">
 <h4>R-076</h4>
@@ -4109,9 +4116,9 @@ L = \frac{20000}{\pi}
 ##  3 CS001115000010       3044 FALSE    
 ##  4 CS001205000004       1988 FALSE    
 ##  5 CS001205000006       3337 FALSE    
-##  6 CS001211000025        456 TRUE     
+##  6 CS001211000025        456 FALSE    
 ##  7 CS001212000027        448 FALSE    
-##  8 CS001212000031        296 TRUE     
+##  8 CS001212000031        296 FALSE    
 ##  9 CS001212000046        228 FALSE    
 ## 10 CS001212000070        456 FALSE</code></pre>
 </div>

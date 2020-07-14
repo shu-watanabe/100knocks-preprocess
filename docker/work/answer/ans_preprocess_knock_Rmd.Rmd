@@ -389,7 +389,7 @@ df_receipt %>% group_by(store_cd) %>%
     dplyr::summarise(
         平均売上金額=mean(amount)) %>%
     arrange(desc(平均売上金額)) %>%
-    head(5)
+    top_n(5,平均売上金額)
 ```
 
 #### R-028
@@ -402,7 +402,7 @@ df_receipt %>% group_by(store_cd) %>%
     dplyr::summarise(
         中央値売上金額=median(amount)) %>%
     arrange(desc(中央値売上金額)) %>%
-    head(5)
+    top_n(5,中央値売上金額)
 ```
 
 
@@ -424,34 +424,38 @@ df_receipt %>% nest(-store_cd) %>%
 
 #### R-030
 
-> レシート明細データフレーム（df_receipt）に対し、店舗コード（store_cd）ごとに売上
-金額（amount）の標本分散を計算し、降順でTOP5を表示せよ。
+> レシート明細データフレーム（df_receipt）に対し、店舗コード（store_cd）ごとに売上金額（amount）の標本分散を計算し、降順でTOP5を表示せよ。
 
+`var()` は不偏分散を計算するため、2乗平均から計算するほうが確実。
 ```{r}
 df_receipt %>% group_by(store_cd) %>%
     dplyr::summarise(
-        標本分散売上金額=var(amount)) %>%
+        不偏分散売上金額=var(amount),
+        標本分散売上金額=mean(amount**2)-mean(amount)**2
+    ) %>%
     arrange(desc(標本分散売上金額)) %>%
-    head(5)
+    top_n(5,標本分散売上金額)
 ```
 
 #### R-031
 
-> レシート明細データフレーム（df_receipt）に対し、店舗コード（store_cd）ごとに売上
-金額（amount）の標本標準偏差を計算し、降順でTOP5を表示せよ。
+> レシート明細データフレーム（df_receipt）に対し、店舗コード（store_cd）ごとに売上金額（amount）の標本標準偏差を計算し、降順でTOP5を表示せよ。
+
+`sd()` は不偏標準偏差を計算するため、2乗平均から計算するほうが確実。
 
 ```{r}
 df_receipt %>% group_by(store_cd) %>%
     dplyr::summarise(
-        標本標準偏差売上金額=sd(amount)) %>%
+        不偏標準偏差売上金額=sd(amount),
+        標本標準偏差売上金額=sqrt(mean(amount**2)-mean(amount)**2)
+    ) %>%
     arrange(desc(標本標準偏差売上金額)) %>%
-    head(5)
+    top_n(5,標本標準偏差売上金額)
 ```
 
 #### R-032
 
-> レシート明細データフレーム（df_receipt）の売上金額（amount）について、25％刻みで
-パーセンタイル値を求めよ。
+> レシート明細データフレーム（df_receipt）の売上金額（amount）について、25％刻みでパーセンタイル値を求めよ。
 
 ```{r}
 quantile(df_receipt[,'amount'])
@@ -466,7 +470,7 @@ quantile(df_receipt[,'amount'])
 df_receipt %>% group_by(store_cd) %>%
     dplyr::summarise(
         平均売上金額=mean(amount)) %>%
-    filter(平均売上金額>=330) 
+    filter(平均売上金額>=330)
 ```
 
 ### 034-035 副問合せ
@@ -596,8 +600,7 @@ table(df_receipt$product_cd,df_receipt$store_cd) %>% length()
 
 #### R-041
 
-> レシート明細データフレーム（df_receipt）の売上金額（amount）を日付（sales_ymd）
-ごとに集計し、前日からの売上金額増減を計算せよ。なお、計算結果は10件表示すればよ
+> レシート明細データフレーム（df_receipt）の売上金額（amount）を日付（sales_ymd）ごとに集計し、前日からの売上金額増減を計算せよ。なお、計算結果は10件表示すればよ
 い。
 
 ```{r}
@@ -611,9 +614,7 @@ df_receipt %>% group_by(sales_ymd) %>%
 
 #### R-042
 
-> レシート明細データフレーム（df_receipt）の売上金額（amount）を日付（sales_ymd）
-ごとに集計し、各日付のデータに対し、１日前、２日前、３日前のデータを結合せよ。結
-果は10件表示すればよい。
+> レシート明細データフレーム（df_receipt）の売上金額（amount）を日付（sales_ymd）ごとに集計し、各日付のデータに対し、１日前、２日前、３日前のデータを結合せよ。結果は10件表示すればよい。
 
 R-041 より先にやったほうがいい。
 
@@ -634,13 +635,8 @@ df_receipt %>% group_by(sales_ymd) %>%
 
 #### R-043
 
-> レシート明細データフレーム（df_receipt）と顧客データフレーム（df_customer）を結
-合し、性別（gender）と年代（ageから計算）ごとに売上金額（amount）を合計した売上
-サマリデータフレーム（df_sales_summary）を作成せよ。性別は0が男性、1が女性、9が
-不明を表すものとする。
-ただし、項目構成は年代、女性の売上金額、男性の売上金額、性別不明の売上金額の4項
-目とすること（縦に年代、横に性別のクロス集計）。また、年代は10歳ごとの階級とする
-こと。
+> レシート明細データフレーム（df_receipt）と顧客データフレーム（df_customer）を結合し、性別（gender）と年代（ageから計算）ごとに売上金額（amount）を合計した売上サマリデータフレーム（df_sales_summary）を作成せよ。性別は0が男性、1が女性、9が不明を表すものとする。
+ただし、項目構成は年代、女性の売上金額、男性の売上金額、性別不明の売上金額の4項目とすること（縦に年代、横に性別のクロス集計）。また、年代は10歳ごとの階級とすること。
 
 ```{r}
 df_sales_summary <- df_receipt %>%
@@ -678,9 +674,7 @@ df_sales_summary %>%
 
 #### R-045
 
-> 顧客データフレーム（df_customer）の生年月日（birth_day）は日付型（Date）でデータ
-を保有している。これをYYYYMMDD形式の文字列に変換し、顧客ID（customer_id）と
-ともに抽出せよ。データは10件を抽出すれば良い。
+> 顧客データフレーム（df_customer）の生年月日（birth_day）は日付型（Date）でデータを保有している。これをYYYYMMDD形式の文字列に変換し、顧客ID（customer_id）とともに抽出せよ。データは10件を抽出すれば良い。
 
 ```{r}
 df_customer %>%
@@ -1709,6 +1703,4 @@ df_product_with_category_t <- read.table(
   fileEncoding='UTF-8')
 head(df_product_with_category_t,10)
 ```
-
-
 
